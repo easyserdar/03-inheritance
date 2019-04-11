@@ -3,16 +3,11 @@ package ohm.softa.a03;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import static ohm.softa.a03.Cat.State.*;
-
 public class Cat {
 	private static final Logger logger = LogManager.getLogger();
 
-	// valid states
-	public enum State {SLEEPING, HUNGRY, DIGESTING, PLAYFUL, DEAD}
-
 	// initially, animals are sleeping
-	private State state = State.SLEEPING;
+	private State state;
 
 	// state durations (set via constructor), ie. the number of ticks in each state
 	private final int sleep;
@@ -29,48 +24,16 @@ public class Cat {
 		this.sleep = sleep;
 		this.awake = awake;
 		this.digest = digest;
+
+		this.state = new SleepingState(this.sleep);
 	}
 
 	public void tick(){
 		logger.info("tick()");
-		time = time + 1;
 
-		switch (state) {
-			case SLEEPING:
-				if (time == sleep) {
-					logger.info("Yoan... getting hungry!");
-					state = HUNGRY;
-					time = 0;
-				}
-				break;
-			case HUNGRY:
-				if(time == awake){
-					logger.info("I've starved for a too long time...good bye...");
-					state = DEAD;
-				}
-				break;
-			case DIGESTING:
-				timeDigesting = timeDigesting + 1;
-				if (timeDigesting == digest) {
-					logger.info("Getting in a playful mood!");
-					state = PLAYFUL;
-				}
-				break;
-			case PLAYFUL:
-				if (time >= awake) {
-					logger.info("Yoan... getting tired!");
-					state = SLEEPING;
-					time = 0;
-				}
-				break;
+		state = state.tick(this);
 
-			case DEAD:
-				break;
-			default:
-				throw new IllegalStateException("Unknown cat state " + state.name());
-		}
-
-		logger.info(state.name());
+		logger.info(state.getClass().getName());
 
 	}
 
@@ -84,28 +47,40 @@ public class Cat {
 		logger.info("You feed the cat...");
 
 		// change state and reset the timer
-		state = State.DIGESTING;
+		state = ((HungryState) state).feed(this);
 		timeDigesting = 0;
 	}
 
-	public boolean isAsleep() {
-		return state.equals(State.SLEEPING);
-	}
+	public boolean isAsleep() { return state instanceof SleepingState;	}
 
 	public boolean isPlayful() {
-		return state.equals(State.PLAYFUL);
+		return state instanceof PlayfulState ;
 	}
 
 	public boolean isHungry() {
-		return state.equals(State.HUNGRY);
+		return state instanceof HungryState;
 	}
 
 	public boolean isDigesting() {
-		return state.equals(State.DIGESTING);
+		return state instanceof  DigestingState;
 	}
 
-	public boolean isDead() {
-		return state == State.DEAD;
+	public boolean isDead() { return state instanceof DeathState;	}
+
+	public int getSleep(){
+		return this.sleep;
+	}
+
+	public int getDigest(){
+		return this.digest;
+	}
+
+	public int getAwake(){
+		return this.awake;
+	}
+
+	public String getName(){
+		return this.name;
 	}
 
 	@Override
